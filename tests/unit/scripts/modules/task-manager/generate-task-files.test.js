@@ -39,11 +39,12 @@ jest.unstable_mockModule('../../../../../scripts/modules/utils.js', () => ({
 		debug: false
 	},
 	sanitizePrompt: jest.fn((prompt) => prompt),
-	truncate: jest.fn((text) => text),
-	isSilentMode: jest.fn(() => false),
-	findTaskById: jest.fn((tasks, id) =>
-		tasks.find((t) => t.id === parseInt(id))
-	),
+        truncate: jest.fn((text) => text),
+        isSilentMode: jest.fn(() => false),
+        getLocalISOString: jest.fn(() => '2024-06-01T12:00:00+00:00'),
+        findTaskById: jest.fn((tasks, id) =>
+                tasks.find((t) => t.id === parseInt(id))
+        ),
 	findProjectRoot: jest.fn(() => '/mock/project/root'),
 	resolveEnvVariable: jest.fn((varName) => `mock_${varName}`)
 }));
@@ -96,59 +97,71 @@ const { default: generateTaskFiles } = await import(
 
 describe('generateTaskFiles', () => {
 	// Sample task data for testing
-	const sampleTasks = {
-		meta: { projectName: 'Test Project' },
-		tasks: [
-			{
-				id: 1,
-				title: 'Task 1',
-				description: 'First task description',
-				status: 'pending',
-				dependencies: [],
-				priority: 'high',
-				details: 'Detailed information for task 1',
-				testStrategy: 'Test strategy for task 1'
-			},
-			{
-				id: 2,
-				title: 'Task 2',
-				description: 'Second task description',
-				status: 'pending',
-				dependencies: [1],
-				priority: 'medium',
-				details: 'Detailed information for task 2',
-				testStrategy: 'Test strategy for task 2'
-			},
-			{
-				id: 3,
-				title: 'Task with Subtasks',
-				description: 'Task with subtasks description',
-				status: 'pending',
-				dependencies: [1, 2],
-				priority: 'high',
-				details: 'Detailed information for task 3',
-				testStrategy: 'Test strategy for task 3',
-				subtasks: [
-					{
-						id: 1,
-						title: 'Subtask 1',
-						description: 'First subtask',
-						status: 'pending',
-						dependencies: [],
-						details: 'Details for subtask 1'
-					},
-					{
-						id: 2,
-						title: 'Subtask 2',
-						description: 'Second subtask',
-						status: 'pending',
-						dependencies: [1],
-						details: 'Details for subtask 2'
-					}
-				]
-			}
-		]
-	};
+        const sampleTasks = {
+                meta: { projectName: 'Test Project' },
+                tasks: [
+                        {
+                                id: 1,
+                                title: 'Task 1',
+                                description: 'First task description',
+                                status: 'pending',
+                                dependencies: [],
+                                priority: 'high',
+                                details: 'Detailed information for task 1',
+                                testStrategy: 'Test strategy for task 1',
+                                statusHistory: [
+                                        { status: 'pending', changedAt: '2024-06-01T12:00:00+00:00' }
+                                ]
+                        },
+                        {
+                                id: 2,
+                                title: 'Task 2',
+                                description: 'Second task description',
+                                status: 'pending',
+                                dependencies: [1],
+                                priority: 'medium',
+                                details: 'Detailed information for task 2',
+                                testStrategy: 'Test strategy for task 2',
+                                statusHistory: [
+                                        { status: 'pending', changedAt: '2024-06-01T12:00:00+00:00' }
+                                ]
+                        },
+                        {
+                                id: 3,
+                                title: 'Task with Subtasks',
+                                description: 'Task with subtasks description',
+                                status: 'pending',
+                                dependencies: [1, 2],
+                                priority: 'high',
+                                details: 'Detailed information for task 3',
+                                testStrategy: 'Test strategy for task 3',
+                                subtasks: [
+                                        {
+                                                id: 1,
+                                                title: 'Subtask 1',
+                                                description: 'First subtask',
+                                                status: 'pending',
+                                                dependencies: [],
+                                                details: 'Details for subtask 1',
+                                                statusHistory: [
+                                                        { status: 'pending', changedAt: '2024-06-01T12:00:00+00:00' }
+                                                ]
+                                        },
+                                        {
+                                                id: 2,
+                                                title: 'Subtask 2',
+                                                description: 'Second subtask',
+                                                status: 'pending',
+                                                dependencies: [1],
+                                                details: 'Details for subtask 2',
+                                                statusHistory: [
+                                                        { status: 'pending', changedAt: '2024-06-01T12:00:00+00:00' }
+                                                ]
+                                        }
+                                ]
+                        }
+                ]
+        };
 
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -286,10 +299,10 @@ describe('generateTaskFiles', () => {
 		expect(firstTaskContent).toContain('# Test Strategy:');
 	});
 
-	test('should include subtasks in task files when present', async () => {
-		// Set up mocks
-		readJSON.mockImplementationOnce(() => sampleTasks);
-		fs.existsSync.mockImplementationOnce(() => true);
+        test('should include subtasks in task files when present', async () => {
+                // Set up mocks
+                readJSON.mockImplementationOnce(() => sampleTasks);
+                fs.existsSync.mockImplementationOnce(() => true);
 
 		// Call the function
 		await generateTaskFiles('tasks/tasks.json', 'tasks', {
@@ -302,8 +315,21 @@ describe('generateTaskFiles', () => {
 		// Verify the content includes subtasks section
 		expect(taskWithSubtasksContent).toContain('# Subtasks:');
 		expect(taskWithSubtasksContent).toContain('## 1. Subtask 1');
-		expect(taskWithSubtasksContent).toContain('## 2. Subtask 2');
-	});
+                expect(taskWithSubtasksContent).toContain('## 2. Subtask 2');
+        });
+
+        test('should list status history when available', async () => {
+                readJSON.mockImplementationOnce(() => sampleTasks);
+                fs.existsSync.mockImplementationOnce(() => true);
+
+                await generateTaskFiles('tasks/tasks.json', 'tasks', {
+                        mcpLog: { info: jest.fn() }
+                });
+
+                const firstTaskContent = fs.writeFileSync.mock.calls[0][1];
+                expect(firstTaskContent).toContain('# Status History:');
+                expect(firstTaskContent).toContain('- pending @ 2024-06-01T12:00:00+00:00');
+        });
 
 	test('should handle errors during file generation', () => {
 		// Mock an error in readJSON

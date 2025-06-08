@@ -26,7 +26,7 @@ import {
 	getVertexProjectId,
 	getVertexLocation
 } from './config-manager.js';
-import { log, findProjectRoot, resolveEnvVariable } from './utils.js';
+import { log, findProjectRoot, resolveEnvVariable, getLocalISOString } from './utils.js';
 
 // Import provider classes
 import {
@@ -688,7 +688,7 @@ async function logAiUsage({
 }) {
 	try {
 		const isMCP = outputType === 'mcp';
-		const timestamp = new Date().toISOString();
+                const timestamp = getLocalISOString();
 		const totalTokens = (inputTokens || 0) + (outputTokens || 0);
 
 		// Destructure currency along with costs

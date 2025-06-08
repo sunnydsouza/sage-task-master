@@ -5,16 +5,17 @@ import { jest } from '@jest/globals';
 
 // Mock the dependencies before importing the module under test
 jest.unstable_mockModule('../../../../../scripts/modules/utils.js', () => ({
-	readJSON: jest.fn(),
-	writeJSON: jest.fn(),
-	log: jest.fn(),
-	CONFIG: {
-		model: 'mock-claude-model',
-		maxTokens: 4000,
-		temperature: 0.7,
-		debug: false
-	},
-	truncate: jest.fn((text) => text)
+        readJSON: jest.fn(),
+        writeJSON: jest.fn(),
+        log: jest.fn(),
+        CONFIG: {
+                model: 'mock-claude-model',
+                maxTokens: 4000,
+                temperature: 0.7,
+                debug: false
+        },
+        truncate: jest.fn((text) => text),
+        getLocalISOString: jest.fn(() => '2024-06-01T12:00:00.000+00:00')
 }));
 
 jest.unstable_mockModule('../../../../../scripts/modules/ui.js', () => ({
@@ -163,12 +164,12 @@ describe('addTask', () => {
 		console.log.mockRestore();
 	});
 
-	test('should add a new task using AI', async () => {
-		// Arrange
-		const prompt = 'Create a new authentication system';
-		const context = {
-			mcpLog: createMcpLogMock()
-		};
+        test('should add a new task using AI', async () => {
+                // Arrange
+                const prompt = 'Create a new authentication system';
+                const context = {
+                        mcpLog: createMcpLogMock()
+                };
 
 		// Act
 		const result = await addTask(
@@ -197,14 +198,30 @@ describe('addTask', () => {
 				])
 			})
 		);
-		expect(generateTaskFiles.default).toHaveBeenCalled();
-		expect(result).toEqual(
-			expect.objectContaining({
-				newTaskId: 4,
-				telemetryData: expect.any(Object)
-			})
-		);
-	});
+                expect(generateTaskFiles.default).toHaveBeenCalled();
+                expect(result).toEqual(
+                        expect.objectContaining({
+                                newTaskId: 4,
+                                telemetryData: expect.any(Object)
+                        })
+                );
+        });
+
+        test('should initialize statusHistory for new tasks', async () => {
+                const prompt = 'Create a new authentication system';
+                const context = { mcpLog: createMcpLogMock() };
+
+                await addTask('tasks/tasks.json', prompt, [], 'medium', context, 'json');
+
+                const saved = writeJSON.mock.calls[0][1];
+                const created = saved.tasks.find((t) => t.id === 4);
+                expect(created.statusHistory).toHaveLength(1);
+                expect(created.statusHistory[0]).toEqual({
+                        status: 'pending',
+                        changedAt: expect.any(String)
+                });
+                expect(created.statusHistory[0].changedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/);
+        });
 
 	test('should validate dependencies when adding a task', async () => {
 		// Arrange

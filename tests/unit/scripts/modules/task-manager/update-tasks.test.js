@@ -14,9 +14,10 @@ jest.unstable_mockModule('../../../../../scripts/modules/utils.js', () => ({
 		temperature: 0.7,
 		debug: false
 	},
-	sanitizePrompt: jest.fn((prompt) => prompt),
-	truncate: jest.fn((text) => text),
-	isSilentMode: jest.fn(() => false)
+        sanitizePrompt: jest.fn((prompt) => prompt),
+        truncate: jest.fn((text) => text),
+        isSilentMode: jest.fn(() => false),
+        getLocalISOString: jest.fn(() => '2024-06-01T12:00:00.000+00:00')
 }));
 
 jest.unstable_mockModule(

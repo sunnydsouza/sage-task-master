@@ -93,7 +93,14 @@ function generateTaskFiles(tasksPath, outputDir, options = {}) {
 			// Format the content
 			let content = `# Task ID: ${task.id}\n`;
 			content += `# Title: ${task.title}\n`;
-			content += `# Status: ${task.status || 'pending'}\n`;
+                        content += `# Status: ${task.status || 'pending'}\n`;
+
+                        if (Array.isArray(task.statusHistory)) {
+                                content += '# Status History:\n';
+                                task.statusHistory.forEach((entry) => {
+                                        content += `- ${entry.status} @ ${entry.changedAt}\n`;
+                                });
+                        }
 
 			// Format dependencies with their status
 			if (task.dependencies && task.dependencies.length > 0) {
@@ -127,8 +134,8 @@ function generateTaskFiles(tasksPath, outputDir, options = {}) {
 				task.subtasks.forEach((subtask) => {
 					content += `## ${subtask.id}. ${subtask.title} [${subtask.status || 'pending'}]\n`;
 
-					if (subtask.dependencies && subtask.dependencies.length > 0) {
-						// Format subtask dependencies
+                                        if (subtask.dependencies && subtask.dependencies.length > 0) {
+                                                // Format subtask dependencies
 						let subtaskDeps = subtask.dependencies
 							.map((depId) => {
 								if (typeof depId === 'number') {
@@ -148,9 +155,16 @@ function generateTaskFiles(tasksPath, outputDir, options = {}) {
 						content += `### Dependencies: ${subtaskDeps}\n`;
 					} else {
 						content += '### Dependencies: None\n';
-					}
+                                        }
 
-					content += `### Description: ${subtask.description || ''}\n`;
+                                        if (Array.isArray(subtask.statusHistory)) {
+                                                content += '### Status History:\n';
+                                                subtask.statusHistory.forEach((entry) => {
+                                                        content += `- ${entry.status} @ ${entry.changedAt}\n`;
+                                                });
+                                        }
+
+                                        content += `### Description: ${subtask.description || ''}\n`;
 					content += '### Details:\n';
 					content += (subtask.details || '')
 						.split('\n')
