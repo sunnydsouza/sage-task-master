@@ -3,7 +3,7 @@ import boxen from 'boxen';
 import readline from 'readline';
 import fs from 'fs';
 
-import { log, readJSON, writeJSON, isSilentMode } from '../utils.js';
+import { log, readJSON, writeJSON, isSilentMode, getLocalISOString } from '../utils.js';
 
 import {
 	startLoadingIndicator,
@@ -278,8 +278,8 @@ async function analyzeTaskComplexity(options, context = {}) {
 
 			// Otherwise create empty report
 			const emptyReport = {
-				meta: {
-					generatedAt: new Date().toISOString(),
+                                meta: {
+                                        generatedAt: getLocalISOString(),
 					tasksAnalyzed: 0,
 					thresholdScore: thresholdScore,
 					projectName: getProjectName(session),
@@ -499,9 +499,9 @@ async function analyzeTaskComplexity(options, context = {}) {
 				finalComplexityAnalysis = complexityAnalysis;
 			}
 
-			const report = {
-				meta: {
-					generatedAt: new Date().toISOString(),
+                        const report = {
+                                meta: {
+                                        generatedAt: getLocalISOString(),
 					tasksAnalyzed: tasksData.tasks.length,
 					totalTasks: originalTaskCount,
 					analysisCount: finalComplexityAnalysis.length,

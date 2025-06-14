@@ -22,11 +22,12 @@ jest.unstable_mockModule('../../../../../scripts/modules/utils.js', () => ({
 	resolveEnvVariable: jest.fn((varName) => `mock_${varName}`),
 	isSilentMode: jest.fn(() => false),
 	findCycles: jest.fn(() => []),
-	formatTaskId: jest.fn((id) => `Task ${id}`),
-	taskExists: jest.fn((tasks, id) => tasks.some((t) => t.id === id)),
-	enableSilentMode: jest.fn(),
-	disableSilentMode: jest.fn(),
-	truncate: jest.fn((text) => text),
+        formatTaskId: jest.fn((id) => `Task ${id}`),
+        taskExists: jest.fn((tasks, id) => tasks.some((t) => t.id === id)),
+        enableSilentMode: jest.fn(),
+        disableSilentMode: jest.fn(),
+        getLocalISOString: jest.fn(() => '2024-06-01T12:00:00.000+00:00'),
+        truncate: jest.fn((text) => text),
 	addComplexityToTask: jest.fn((task, complexity) => ({ ...task, complexity })),
 	aggregateTelemetry: jest.fn((telemetryArray) => telemetryArray[0] || {})
 }));

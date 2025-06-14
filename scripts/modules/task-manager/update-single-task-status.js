@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-import { log } from '../utils.js';
+import { log, getLocalISOString } from '../utils.js';
 import { isValidTaskStatus } from '../../../src/constants/task-status.js';
 
 /**
@@ -48,9 +48,17 @@ async function updateSingleTaskStatus(
 			);
 		}
 
-		// Update the subtask status
-		const oldStatus = subtask.status || 'pending';
-		subtask.status = newStatus;
+                // Update the subtask status
+                const oldStatus = subtask.status || 'pending';
+                subtask.status = newStatus;
+
+                if (!Array.isArray(subtask.statusHistory)) {
+                        subtask.statusHistory = [];
+                }
+                subtask.statusHistory.push({
+                        status: newStatus,
+                        changedAt: getLocalISOString()
+                });
 
 		log(
 			'info',
@@ -96,9 +104,17 @@ async function updateSingleTaskStatus(
 			throw new Error(`Task ${taskId} not found`);
 		}
 
-		// Update the task status
-		const oldStatus = task.status || 'pending';
-		task.status = newStatus;
+                // Update the task status
+                const oldStatus = task.status || 'pending';
+                task.status = newStatus;
+
+                if (!Array.isArray(task.statusHistory)) {
+                        task.statusHistory = [];
+                }
+                task.statusHistory.push({
+                        status: newStatus,
+                        changedAt: getLocalISOString()
+                });
 
 		log(
 			'info',

@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { log, readJSON, writeJSON } from '../utils.js';
+import { log, readJSON, writeJSON, getLocalISOString } from '../utils.js';
 import { isTaskDependentOn } from '../task-manager.js';
 import generateTaskFiles from './generate-task-files.js';
 
@@ -87,11 +87,23 @@ async function addSubtask(
 			const newSubtaskId = highestSubtaskId + 1;
 
 			// Clone the existing task to be converted to a subtask
-			newSubtask = {
-				...existingTask,
-				id: newSubtaskId,
-				parentTaskId: parentIdNum
-			};
+                        newSubtask = {
+                                ...existingTask,
+                                id: newSubtaskId,
+                                parentTaskId: parentIdNum,
+                                statusHistory:
+                                        existingTask.statusHistory &&
+                                        Array.isArray(existingTask.statusHistory)
+                                                ? existingTask.statusHistory
+                                                : [
+                                                          {
+                                                                  status:
+                                                                          existingTask.status ||
+                                                                          'pending',
+                                                                  changedAt: getLocalISOString()
+                                                          }
+                                                  ]
+                        };
 
 			// Add to parent's subtasks
 			parentTask.subtasks.push(newSubtask);
@@ -114,15 +126,23 @@ async function addSubtask(
 			const newSubtaskId = highestSubtaskId + 1;
 
 			// Create the new subtask object
-			newSubtask = {
-				id: newSubtaskId,
-				title: newSubtaskData.title,
-				description: newSubtaskData.description || '',
-				details: newSubtaskData.details || '',
-				status: newSubtaskData.status || 'pending',
-				dependencies: newSubtaskData.dependencies || [],
-				parentTaskId: parentIdNum
-			};
+                        newSubtask = {
+                                id: newSubtaskId,
+                                title: newSubtaskData.title,
+                                description: newSubtaskData.description || '',
+                                details: newSubtaskData.details || '',
+                                status: newSubtaskData.status || 'pending',
+                                dependencies: newSubtaskData.dependencies || [],
+                                parentTaskId: parentIdNum,
+                                statusHistory: [
+                                        {
+                                                status:
+                                                        newSubtaskData.status ||
+                                                        'pending',
+                                                changedAt: getLocalISOString()
+                                        }
+                                ]
+                        };
 
 			// Add to parent's subtasks
 			parentTask.subtasks.push(newSubtask);

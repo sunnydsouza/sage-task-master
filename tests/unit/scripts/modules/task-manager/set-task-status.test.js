@@ -5,10 +5,11 @@ import { jest } from '@jest/globals';
 
 // Mock the dependencies before importing the module under test
 jest.unstable_mockModule('../../../../../scripts/modules/utils.js', () => ({
-	readJSON: jest.fn(),
-	writeJSON: jest.fn(),
-	log: jest.fn(),
-	CONFIG: {
+        readJSON: jest.fn(),
+        writeJSON: jest.fn(),
+        log: jest.fn(),
+        getLocalISOString: jest.fn(() => '2024-06-01T12:00:00.000+00:00'),
+        CONFIG: {
 		model: 'mock-claude-model',
 		maxTokens: 4000,
 		temperature: 0.7,
@@ -79,8 +80,8 @@ jest.unstable_mockModule(
 );
 
 // Import the mocked modules
-const { readJSON, writeJSON, log, findTaskById } = await import(
-	'../../../../../scripts/modules/utils.js'
+const { readJSON, writeJSON, log, findTaskById, getLocalISOString } = await import(
+        '../../../../../scripts/modules/utils.js'
 );
 
 const generateTaskFiles = (
@@ -169,8 +170,8 @@ describe('setTaskStatus', () => {
 		});
 
 		// Set up updateSingleTaskStatus mock to actually update the data
-		updateSingleTaskStatus.mockImplementation(
-			async (tasksPath, taskId, newStatus, data) => {
+                updateSingleTaskStatus.mockImplementation(
+                        async (tasksPath, taskId, newStatus, data) => {
 				// Handle subtask notation (e.g., "3.1")
 				if (taskId.includes('.')) {
 					const [parentId, subtaskId] = taskId
@@ -189,14 +190,28 @@ describe('setTaskStatus', () => {
 							`Subtask ${subtaskId} not found in parent task ${parentId}`
 						);
 					}
-					subtask.status = newStatus;
-				} else {
-					// Handle regular task
-					const task = data.tasks.find((t) => t.id === parseInt(taskId, 10));
-					if (!task) {
-						throw new Error(`Task ${taskId} not found`);
-					}
-					task.status = newStatus;
+                                        subtask.status = newStatus;
+                                        if (!Array.isArray(subtask.statusHistory)) {
+                                                subtask.statusHistory = [];
+                                        }
+                                        subtask.statusHistory.push({
+                                                status: newStatus,
+                                                changedAt: getLocalISOString()
+                                        });
+                                } else {
+                                        // Handle regular task
+                                        const task = data.tasks.find((t) => t.id === parseInt(taskId, 10));
+                                        if (!task) {
+                                                throw new Error(`Task ${taskId} not found`);
+                                        }
+                                        task.status = newStatus;
+                                        if (!Array.isArray(task.statusHistory)) {
+                                                task.statusHistory = [];
+                                        }
+                                        task.statusHistory.push({
+                                                status: newStatus,
+                                                changedAt: getLocalISOString()
+                                        });
 
 					// If marking parent as done, mark all subtasks as done too
 					if (newStatus === 'done' && task.subtasks) {
@@ -214,7 +229,7 @@ describe('setTaskStatus', () => {
 		jest.restoreAllMocks();
 	});
 
-	test('should update task status in tasks.json', async () => {
+        test('should update task status in tasks.json', async () => {
 		// Arrange
 		const testTasksData = JSON.parse(JSON.stringify(sampleTasks));
 		const tasksPath = '/mock/path/tasks.json';
@@ -228,20 +243,44 @@ describe('setTaskStatus', () => {
 
 		// Assert
 		expect(readJSON).toHaveBeenCalledWith(tasksPath);
-		expect(writeJSON).toHaveBeenCalledWith(
-			tasksPath,
-			expect.objectContaining({
-				tasks: expect.arrayContaining([
-					expect.objectContaining({ id: 2, status: 'done' })
-				])
-			})
-		);
-		expect(generateTaskFiles).toHaveBeenCalledWith(
-			tasksPath,
-			expect.any(String),
-			expect.any(Object)
-		);
-	});
+                expect(writeJSON).toHaveBeenCalledWith(
+                        tasksPath,
+                        expect.objectContaining({
+                                tasks: expect.arrayContaining([
+                                        expect.objectContaining({
+                                                id: 2,
+                                                status: 'done',
+                                                statusHistory: expect.arrayContaining([
+                                                        expect.objectContaining({
+                                                                status: 'done',
+                                                                changedAt: expect.any(String)
+                                                        })
+                                                ])
+                                        })
+                                ])
+                        })
+                );
+                const saved = writeJSON.mock.calls[0][1];
+                const entry = saved.tasks.find((t) => t.id === 2).statusHistory.pop();
+                expect(entry.changedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/);
+                expect(generateTaskFiles).toHaveBeenCalledWith(
+                        tasksPath,
+                        expect.any(String),
+                        expect.any(Object)
+                );
+        });
+
+        test('should update meta.updatedAt when status changes', async () => {
+                const testTasksData = JSON.parse(JSON.stringify(sampleTasks));
+                const tasksPath = '/mock/path/tasks.json';
+
+                readJSON.mockReturnValue(testTasksData);
+
+                await setTaskStatus(tasksPath, '1', 'done', { mcpLog: { info: jest.fn() } });
+
+                const saved = writeJSON.mock.calls[0][1];
+                expect(saved.meta.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/);
+        });
 
 	test('should update subtask status when using dot notation', async () => {
 		// Arrange
@@ -257,20 +296,34 @@ describe('setTaskStatus', () => {
 
 		// Assert
 		expect(readJSON).toHaveBeenCalledWith(tasksPath);
-		expect(writeJSON).toHaveBeenCalledWith(
-			tasksPath,
-			expect.objectContaining({
-				tasks: expect.arrayContaining([
-					expect.objectContaining({
-						id: 3,
-						subtasks: expect.arrayContaining([
-							expect.objectContaining({ id: 1, status: 'done' })
-						])
-					})
-				])
-			})
-		);
-	});
+                expect(writeJSON).toHaveBeenCalledWith(
+                        tasksPath,
+                        expect.objectContaining({
+                                tasks: expect.arrayContaining([
+                                        expect.objectContaining({
+                                                id: 3,
+                                                subtasks: expect.arrayContaining([
+                                                        expect.objectContaining({
+                                                                id: 1,
+                                                                status: 'done',
+                                                                statusHistory: expect.arrayContaining([
+                                                                        expect.objectContaining({
+                                                                                status: 'done',
+                                                                                changedAt: expect.any(String)
+                                                                        })
+                                                                ])
+                                                        })
+                                                ])
+                                        })
+                                ])
+                        })
+                );
+                const subSaved = writeJSON.mock.calls[0][1];
+                const subEntry = subSaved.tasks
+                        .find((t) => t.id === 3)
+                        .subtasks.find((s) => s.id === 1).statusHistory.pop();
+                expect(subEntry.changedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/);
+        });
 
 	test('should update multiple tasks when given comma-separated IDs', async () => {
 		// Arrange

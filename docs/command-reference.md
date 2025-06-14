@@ -104,6 +104,15 @@ task-master set-status --id=1.1,1.2 --status=<status>
 
 When marking a task as "done", all of its subtasks will automatically be marked as "done" as well.
 
+Every status change is recorded with an ISO-8601 timestamp that includes your local timezone offset. Generated task files show this history:
+
+```
+# Status: in-progress
+# Status History:
+- pending @ 2024-06-01T12:00:00+00:00
+- in-progress @ 2024-06-02T09:15:00+00:00
+```
+
 ## Expand Tasks
 
 ```bash

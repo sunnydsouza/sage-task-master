@@ -9,6 +9,7 @@ const mockReadJSON = jest.fn();
 const mockWriteJSON = jest.fn();
 const mockGenerateTaskFiles = jest.fn();
 const mockIsTaskDependentOn = jest.fn().mockReturnValue(false);
+const mockGetLocalISOString = jest.fn(() => '2024-06-01T12:00:00.000+00:00');
 
 // Mock path module
 jest.mock('path', () => ({
@@ -45,8 +46,8 @@ const testAddSubtask = (
 
 	let newSubtask;
 
-	// Case 1: Convert an existing task to a subtask
-	if (existingTaskId !== null) {
+        // Case 1: Convert an existing task to a subtask
+        if (existingTaskId !== null) {
 		const existingTaskIdNum = parseInt(existingTaskId, 10);
 
 		// Find the existing task
@@ -86,11 +87,20 @@ const testAddSubtask = (
 		const newSubtaskId = highestSubtaskId + 1;
 
 		// Clone the existing task to be converted to a subtask
-		newSubtask = {
-			...existingTask,
-			id: newSubtaskId,
-			parentTaskId: parentIdNum
-		};
+                newSubtask = {
+                        ...existingTask,
+                        id: newSubtaskId,
+                        parentTaskId: parentIdNum,
+                        statusHistory:
+                                existingTask.statusHistory && Array.isArray(existingTask.statusHistory)
+                                        ? existingTask.statusHistory
+                                        : [
+                                                  {
+                                                          status: existingTask.status || 'pending',
+                                                          changedAt: mockGetLocalISOString()
+                                                  }
+                                          ]
+                };
 
 		// Add to parent's subtasks
 		parentTask.subtasks.push(newSubtask);
@@ -108,15 +118,21 @@ const testAddSubtask = (
 		const newSubtaskId = highestSubtaskId + 1;
 
 		// Create the new subtask object
-		newSubtask = {
-			id: newSubtaskId,
-			title: newSubtaskData.title,
-			description: newSubtaskData.description || '',
-			details: newSubtaskData.details || '',
-			status: newSubtaskData.status || 'pending',
-			dependencies: newSubtaskData.dependencies || [],
-			parentTaskId: parentIdNum
-		};
+                newSubtask = {
+                        id: newSubtaskId,
+                        title: newSubtaskData.title,
+                        description: newSubtaskData.description || '',
+                        details: newSubtaskData.details || '',
+                        status: newSubtaskData.status || 'pending',
+                        dependencies: newSubtaskData.dependencies || [],
+                        parentTaskId: parentIdNum,
+                        statusHistory: [
+                                {
+                                        status: newSubtaskData.status || 'pending',
+                                        changedAt: mockGetLocalISOString()
+                                }
+                        ]
+                };
 
 		// Add to parent's subtasks
 		parentTask.subtasks.push(newSubtask);
@@ -176,7 +192,7 @@ describe('addSubtask function', () => {
 		mockIsTaskDependentOn.mockReturnValue(false);
 	});
 
-	test('should add a new subtask to a parent task', async () => {
+        test('should add a new subtask to a parent task', async () => {
 		// Create new subtask data
 		const newSubtaskData = {
 			title: 'New Subtask',
@@ -211,10 +227,34 @@ describe('addSubtask function', () => {
 		expect(newSubtask.parentTaskId).toBe(1);
 
 		// Verify generateTaskFiles was called
-		expect(mockGenerateTaskFiles).toHaveBeenCalled();
-	});
+                expect(mockGenerateTaskFiles).toHaveBeenCalled();
+        });
 
-	test('should convert an existing task to a subtask', async () => {
+        test('new subtasks include initial status history', async () => {
+                const newSubtaskData = {
+                        title: 'History Subtask',
+                        description: 'With history',
+                        status: 'pending',
+                        dependencies: []
+                };
+
+                const newSubtask = testAddSubtask(
+                        'tasks/tasks.json',
+                        1,
+                        null,
+                        newSubtaskData,
+                        true
+                );
+
+                expect(newSubtask.statusHistory).toHaveLength(1);
+                expect(newSubtask.statusHistory[0]).toEqual({
+                        status: 'pending',
+                        changedAt: expect.any(String)
+                });
+                expect(newSubtask.statusHistory[0].changedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/);
+        });
+
+        test('should convert an existing task to a subtask', async () => {
 		// Execute the test version of addSubtask to convert task 2 to a subtask of task 1
 		const convertedSubtask = testAddSubtask(
 			'tasks/tasks.json',
@@ -237,8 +277,18 @@ describe('addSubtask function', () => {
 		expect(convertedSubtask.parentTaskId).toBe(1);
 
 		// Verify generateTaskFiles was called
-		expect(mockGenerateTaskFiles).toHaveBeenCalled();
-	});
+                expect(mockGenerateTaskFiles).toHaveBeenCalled();
+        });
+
+        test('converted tasks retain or initialize status history', async () => {
+                const converted = testAddSubtask('tasks/tasks.json', 1, 2, null, true);
+
+                expect(converted.statusHistory).toHaveLength(1);
+                expect(converted.statusHistory[0]).toEqual({
+                        status: 'pending',
+                        changedAt: expect.any(String)
+                });
+        });
 
 	test('should throw an error if parent task does not exist', async () => {
 		// Create new subtask data
