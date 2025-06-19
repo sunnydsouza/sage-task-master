@@ -100,9 +100,23 @@ task-master set-status --id=1,2,3 --status=<status>
 
 # Set status for subtasks
 task-master set-status --id=1.1,1.2 --status=<status>
+
+# Optionally set a custom timestamp (CLI only)
+task-master set-status --id=<id> --status=<status> --timestamp=<iso>
 ```
 
+Use `--timestamp` to record a specific ISO-8601 time instead of the current time when running from the CLI.
+
 When marking a task as "done", all of its subtasks will automatically be marked as "done" as well.
+
+Every status change is recorded with an ISO-8601 timestamp that includes your local timezone offset. Generated task files show this history:
+
+```
+# Status: in-progress
+# Status History:
+- pending @ 2024-06-01T12:00:00+00:00
+- in-progress @ 2024-06-02T09:15:00+00:00
+```
 
 ## Expand Tasks
 

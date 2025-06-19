@@ -11,11 +11,12 @@ import {
 	displayAiUsageSummary
 } from '../ui.js';
 import {
-	log as consoleLog,
-	readJSON,
-	writeJSON,
-	truncate,
-	isSilentMode
+        log as consoleLog,
+        readJSON,
+        writeJSON,
+        truncate,
+        isSilentMode,
+        getLocalISOString
 } from '../utils.js';
 import { generateTextService } from '../ai-services-unified.js';
 import { getDebugFlag } from '../config-manager.js';
@@ -245,7 +246,7 @@ Output Requirements:
 
 		if (generatedContentString && generatedContentString.trim()) {
 			// Check if the string is not empty
-			const timestamp = new Date().toISOString();
+                        const timestamp = getLocalISOString();
 			const formattedBlock = `<info added on ${timestamp}>\n${generatedContentString.trim()}\n</info added on ${timestamp}>`;
 			newlyAddedSnippet = formattedBlock; // <--- ADD THIS LINE: Store for display
 

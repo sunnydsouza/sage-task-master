@@ -183,6 +183,21 @@ task-master next
 task-master generate
 ```
 
+### Status History & Local Timestamps
+
+Every task now records a `statusHistory` array. Each entry notes the new status
+and the time it changed, formatted with your local timezone. Task files include
+this history after the current `# Status:` line.
+
+Use `--timestamp` when setting a status from the CLI to record a custom time:
+
+```bash
+task-master set-status --id=1 --status=done \
+  --timestamp=2024-06-01T15:30:00+02:00
+```
+
+The timestamp option is ignored in MCP mode.
+
 ## Documentation
 
 For more detailed information, check out the documentation in the `docs` directory:

@@ -2,7 +2,7 @@ import path from 'path';
 import chalk from 'chalk';
 import boxen from 'boxen';
 
-import { log, readJSON, writeJSON, findTaskById } from '../utils.js';
+import { log, readJSON, writeJSON, findTaskById, getLocalISOString } from '../utils.js';
 import { displayBanner } from '../ui.js';
 import { validateTaskDependencies } from '../dependency-manager.js';
 import { getDebugFlag } from '../config-manager.js';
@@ -29,7 +29,8 @@ async function setTaskStatus(tasksPath, taskIdInput, newStatus, options = {}) {
 			);
 		}
 		// Determine if we're in MCP mode by checking for mcpLog
-		const isMcpMode = !!options?.mcpLog;
+                const isMcpMode = !!options?.mcpLog;
+                const timestamp = isMcpMode ? undefined : options.timestamp;
 
 		// Only display UI elements if not in MCP mode
 		if (!isMcpMode) {
@@ -55,13 +56,22 @@ async function setTaskStatus(tasksPath, taskIdInput, newStatus, options = {}) {
 		const updatedTasks = [];
 
 		// Update each task
-		for (const id of taskIds) {
-			await updateSingleTaskStatus(tasksPath, id, newStatus, data, !isMcpMode);
-			updatedTasks.push(id);
-		}
+                for (const id of taskIds) {
+                        await updateSingleTaskStatus(
+                                tasksPath,
+                                id,
+                                newStatus,
+                                data,
+                                !isMcpMode,
+                                timestamp
+                        );
+                        updatedTasks.push(id);
+                }
 
-		// Write the updated tasks to the file
-		writeJSON(tasksPath, data);
+                // Update metadata timestamp and write updated tasks
+                data.meta = data.meta || {};
+                data.meta.updatedAt = timestamp || getLocalISOString();
+                writeJSON(tasksPath, data);
 
 		// Validate dependencies after status update
 		log('info', 'Validating dependencies after status update...');

@@ -141,7 +141,24 @@ function disableSilentMode() {
  * @returns {boolean} True if silent mode is enabled
  */
 function isSilentMode() {
-	return silentMode;
+        return silentMode;
+}
+
+/**
+ * Returns an ISO 8601 timestamp with the local timezone offset.
+ * @param {Date} [date=new Date()] - Date object to format.
+ * @returns {string} ISO string with timezone offset.
+ */
+function getLocalISOString(date = new Date()) {
+        const tzOffset = -date.getTimezoneOffset();
+        const sign = tzOffset >= 0 ? '+' : '-';
+        const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, '0');
+        const hours = pad(tzOffset / 60);
+        const minutes = pad(tzOffset % 60);
+        const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+                .toISOString()
+                .slice(0, -1);
+        return `${localTime}${sign}${hours}:${minutes}`;
 }
 
 /**
@@ -617,8 +634,8 @@ function aggregateTelemetry(telemetryArray, overallCommandName) {
 		return null;
 	}
 
-	const aggregated = {
-		timestamp: new Date().toISOString(), // Use current time for aggregation time
+        const aggregated = {
+                timestamp: getLocalISOString(), // Use current time for aggregation time
 		userId: telemetryArray[0].userId, // Assume userId is consistent
 		commandName: overallCommandName,
 		modelUsed: 'Multiple', // Default if models vary
@@ -663,11 +680,12 @@ function aggregateTelemetry(telemetryArray, overallCommandName) {
 
 // Export all utility functions and configuration
 export {
-	LOG_LEVELS,
-	log,
-	readJSON,
-	writeJSON,
-	sanitizePrompt,
+        LOG_LEVELS,
+        log,
+        readJSON,
+        writeJSON,
+        getLocalISOString,
+        sanitizePrompt,
 	readComplexityReport,
 	findTaskInComplexityReport,
 	taskExists,

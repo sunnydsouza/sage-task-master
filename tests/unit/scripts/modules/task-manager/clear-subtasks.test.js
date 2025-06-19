@@ -14,9 +14,10 @@ jest.unstable_mockModule('../../../../../scripts/modules/utils.js', () => ({
 		temperature: 0.7,
 		debug: false
 	},
-	findTaskById: jest.fn(),
-	isSilentMode: jest.fn(() => false),
-	truncate: jest.fn((text) => text)
+        findTaskById: jest.fn(),
+        isSilentMode: jest.fn(() => false),
+        truncate: jest.fn((text) => text),
+        getLocalISOString: jest.fn(() => '2024-06-01T12:00:00.000+00:00')
 }));
 
 jest.unstable_mockModule('../../../../../scripts/modules/ui.js', () => ({

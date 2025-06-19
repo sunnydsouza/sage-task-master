@@ -5,9 +5,10 @@ import { jest } from '@jest/globals';
 
 // Import test fixtures
 import {
-	isValidTaskStatus,
-	TASK_STATUS_OPTIONS
+        isValidTaskStatus,
+        TASK_STATUS_OPTIONS
 } from '../../../../../src/constants/task-status.js';
+import { getLocalISOString } from '../../../../../scripts/modules/utils.js';
 
 // Sample tasks data for testing
 const sampleTasks = {
@@ -84,8 +85,15 @@ const testUpdateSingleTaskStatus = (tasksData, taskIdInput, newStatus) => {
 			);
 		}
 
-		// Update the subtask status
-		subtask.status = newStatus;
+                // Update the subtask status and history
+                subtask.status = newStatus;
+                if (!Array.isArray(subtask.statusHistory)) {
+                        subtask.statusHistory = [];
+                }
+                subtask.statusHistory.push({
+                        status: newStatus,
+                        changedAt: getLocalISOString()
+                });
 
 		// Check if all subtasks are done (if setting to 'done')
 		if (
@@ -107,8 +115,15 @@ const testUpdateSingleTaskStatus = (tasksData, taskIdInput, newStatus) => {
 			throw new Error(`Task ${taskId} not found`);
 		}
 
-		// Update the task status
-		task.status = newStatus;
+                // Update the task status and history
+                task.status = newStatus;
+                if (!Array.isArray(task.statusHistory)) {
+                        task.statusHistory = [];
+                }
+                task.statusHistory.push({
+                        status: newStatus,
+                        changedAt: getLocalISOString()
+                });
 
 		// If marking as done, also mark all subtasks as done
 		if (
@@ -127,17 +142,25 @@ const testUpdateSingleTaskStatus = (tasksData, taskIdInput, newStatus) => {
 };
 
 describe('updateSingleTaskStatus function', () => {
-	test('should update regular task status', async () => {
-		// Arrange
-		const testTasksData = JSON.parse(JSON.stringify(sampleTasks));
+        test('should update regular task status', async () => {
+                // Arrange
+                const testTasksData = JSON.parse(JSON.stringify(sampleTasks));
 
-		// Act
-		const result = testUpdateSingleTaskStatus(testTasksData, '2', 'done');
+                // Act
+                const result = testUpdateSingleTaskStatus(testTasksData, '2', 'done');
 
-		// Assert
-		expect(result).toBe(true);
-		expect(testTasksData.tasks[1].status).toBe('done');
-	});
+                // Assert
+                expect(result).toBe(true);
+                expect(testTasksData.tasks[1].status).toBe('done');
+                expect(testTasksData.tasks[1].statusHistory).toHaveLength(1);
+                expect(testTasksData.tasks[1].statusHistory[0]).toEqual({
+                        status: 'done',
+                        changedAt: expect.any(String)
+                });
+                expect(testTasksData.tasks[1].statusHistory[0].changedAt).toMatch(
+                        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/
+                );
+        });
 
 	test('should throw error for invalid status', async () => {
 		// Arrange
@@ -149,17 +172,25 @@ describe('updateSingleTaskStatus function', () => {
 		).toThrow(/Error: Invalid status value: Done./);
 	});
 
-	test('should update subtask status', async () => {
-		// Arrange
-		const testTasksData = JSON.parse(JSON.stringify(sampleTasks));
+        test('should update subtask status', async () => {
+                // Arrange
+                const testTasksData = JSON.parse(JSON.stringify(sampleTasks));
 
-		// Act
-		const result = testUpdateSingleTaskStatus(testTasksData, '3.1', 'done');
+                // Act
+                const result = testUpdateSingleTaskStatus(testTasksData, '3.1', 'done');
 
-		// Assert
-		expect(result).toBe(true);
-		expect(testTasksData.tasks[2].subtasks[0].status).toBe('done');
-	});
+                // Assert
+                expect(result).toBe(true);
+                expect(testTasksData.tasks[2].subtasks[0].status).toBe('done');
+                expect(testTasksData.tasks[2].subtasks[0].statusHistory).toHaveLength(1);
+                expect(testTasksData.tasks[2].subtasks[0].statusHistory[0]).toEqual({
+                        status: 'done',
+                        changedAt: expect.any(String)
+                });
+                expect(testTasksData.tasks[2].subtasks[0].statusHistory[0].changedAt).toMatch(
+                        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/
+                );
+        });
 
 	test('should handle parent tasks without subtasks', async () => {
 		// Arrange

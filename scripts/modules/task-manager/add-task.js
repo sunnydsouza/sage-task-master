@@ -12,7 +12,13 @@ import {
 	stopLoadingIndicator,
 	displayAiUsageSummary
 } from '../ui.js';
-import { readJSON, writeJSON, log as consoleLog, truncate } from '../utils.js';
+import {
+        readJSON,
+        writeJSON,
+        log as consoleLog,
+        truncate,
+        getLocalISOString
+} from '../utils.js';
 import { generateObjectService } from '../ai-services-unified.js';
 import { getDefaultPriority } from '../config-manager.js';
 import generateTaskFiles from './generate-task-files.js';
@@ -992,19 +998,25 @@ async function addTask(
 		}
 
 		// Create the new task object
-		const newTask = {
-			id: newTaskId,
-			title: taskData.title,
-			description: taskData.description,
-			details: taskData.details || '',
-			testStrategy: taskData.testStrategy || '',
-			status: 'pending',
-			dependencies: taskData.dependencies?.length
-				? taskData.dependencies
-				: numericDependencies, // Use AI-suggested dependencies if available, fallback to manually specified
-			priority: effectivePriority,
-			subtasks: [] // Initialize with empty subtasks array
-		};
+                const newTask = {
+                        id: newTaskId,
+                        title: taskData.title,
+                        description: taskData.description,
+                        details: taskData.details || '',
+                        testStrategy: taskData.testStrategy || '',
+                        status: 'pending',
+                        dependencies: taskData.dependencies?.length
+                                ? taskData.dependencies
+                                : numericDependencies, // Use AI-suggested dependencies if available, fallback to manually specified
+                        priority: effectivePriority,
+                        subtasks: [], // Initialize with empty subtasks array
+                        statusHistory: [
+                                {
+                                        status: 'pending',
+                                        changedAt: getLocalISOString()
+                                }
+                        ]
+                };
 
 		// Additional check: validate all dependencies in the AI response
 		if (taskData.dependencies?.length) {
