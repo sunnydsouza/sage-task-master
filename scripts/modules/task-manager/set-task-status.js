@@ -29,7 +29,8 @@ async function setTaskStatus(tasksPath, taskIdInput, newStatus, options = {}) {
 			);
 		}
 		// Determine if we're in MCP mode by checking for mcpLog
-		const isMcpMode = !!options?.mcpLog;
+                const isMcpMode = !!options?.mcpLog;
+                const timestamp = isMcpMode ? undefined : options.timestamp;
 
 		// Only display UI elements if not in MCP mode
 		if (!isMcpMode) {
@@ -55,14 +56,21 @@ async function setTaskStatus(tasksPath, taskIdInput, newStatus, options = {}) {
 		const updatedTasks = [];
 
 		// Update each task
-		for (const id of taskIds) {
-			await updateSingleTaskStatus(tasksPath, id, newStatus, data, !isMcpMode);
-			updatedTasks.push(id);
-		}
+                for (const id of taskIds) {
+                        await updateSingleTaskStatus(
+                                tasksPath,
+                                id,
+                                newStatus,
+                                data,
+                                !isMcpMode,
+                                timestamp
+                        );
+                        updatedTasks.push(id);
+                }
 
                 // Update metadata timestamp and write updated tasks
                 data.meta = data.meta || {};
-                data.meta.updatedAt = getLocalISOString();
+                data.meta.updatedAt = timestamp || getLocalISOString();
                 writeJSON(tasksPath, data);
 
 		// Validate dependencies after status update

@@ -12,11 +12,12 @@ import { isValidTaskStatus } from '../../../src/constants/task-status.js';
  * @param {boolean} showUi - Whether to show UI elements
  */
 async function updateSingleTaskStatus(
-	tasksPath,
-	taskIdInput,
-	newStatus,
-	data,
-	showUi = true
+        tasksPath,
+        taskIdInput,
+        newStatus,
+        data,
+        showUi = true,
+        timestamp
 ) {
 	if (!isValidTaskStatus(newStatus)) {
 		throw new Error(
@@ -57,7 +58,7 @@ async function updateSingleTaskStatus(
                 }
                 subtask.statusHistory.push({
                         status: newStatus,
-                        changedAt: getLocalISOString()
+                        changedAt: timestamp || getLocalISOString()
                 });
 
 		log(
@@ -113,7 +114,7 @@ async function updateSingleTaskStatus(
                 }
                 task.statusHistory.push({
                         status: newStatus,
-                        changedAt: getLocalISOString()
+                        changedAt: timestamp || getLocalISOString()
                 });
 
 		log(

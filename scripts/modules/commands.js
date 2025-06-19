@@ -1203,15 +1203,20 @@ function registerCommands(programInstance) {
 			'-s, --status <status>',
 			`New status (one of: ${TASK_STATUS_OPTIONS.join(', ')})`
 		)
-		.option(
-			'-f, --file <file>',
-			'Path to the tasks file',
-			TASKMASTER_TASKS_FILE
-		)
-		.action(async (options) => {
-			const tasksPath = options.file || TASKMASTER_TASKS_FILE;
-			const taskId = options.id;
-			const status = options.status;
+                .option(
+                        '-f, --file <file>',
+                        'Path to the tasks file',
+                        TASKMASTER_TASKS_FILE
+                )
+                .option(
+                        '-t, --timestamp <timestamp>',
+                        'Custom timestamp for the status change (ISO-8601)'
+                )
+                .action(async (options) => {
+                        const tasksPath = options.file || TASKMASTER_TASKS_FILE;
+                        const taskId = options.id;
+                        const status = options.status;
+                        const timestamp = options.timestamp;
 
 			if (!taskId || !status) {
 				console.error(chalk.red('Error: Both --id and --status are required'));
@@ -1232,8 +1237,10 @@ function registerCommands(programInstance) {
 				chalk.blue(`Setting status of task(s) ${taskId} to: ${status}`)
 			);
 
-			await setTaskStatus(tasksPath, taskId, status);
-		});
+                        await setTaskStatus(tasksPath, taskId, status, {
+                                timestamp
+                        });
+                });
 
 	// list command
 	programInstance

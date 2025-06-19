@@ -171,7 +171,7 @@ describe('setTaskStatus', () => {
 
 		// Set up updateSingleTaskStatus mock to actually update the data
                 updateSingleTaskStatus.mockImplementation(
-                        async (tasksPath, taskId, newStatus, data) => {
+                        async (tasksPath, taskId, newStatus, data, _showUi, timestamp) => {
 				// Handle subtask notation (e.g., "3.1")
 				if (taskId.includes('.')) {
 					const [parentId, subtaskId] = taskId
@@ -196,7 +196,7 @@ describe('setTaskStatus', () => {
                                         }
                                         subtask.statusHistory.push({
                                                 status: newStatus,
-                                                changedAt: getLocalISOString()
+                                                changedAt: timestamp || getLocalISOString()
                                         });
                                 } else {
                                         // Handle regular task
@@ -210,7 +210,7 @@ describe('setTaskStatus', () => {
                                         }
                                         task.statusHistory.push({
                                                 status: newStatus,
-                                                changedAt: getLocalISOString()
+                                                changedAt: timestamp || getLocalISOString()
                                         });
 
 					// If marking parent as done, mark all subtasks as done too
@@ -280,6 +280,21 @@ describe('setTaskStatus', () => {
 
                 const saved = writeJSON.mock.calls[0][1];
                 expect(saved.meta.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/);
+        });
+
+        test('should respect provided timestamp', async () => {
+                const testTasksData = JSON.parse(JSON.stringify(sampleTasks));
+                const tasksPath = '/mock/path/tasks.json';
+                const customTs = '2025-01-01T00:00:00+00:00';
+
+                readJSON.mockReturnValue(testTasksData);
+
+                await setTaskStatus(tasksPath, '1', 'done', { timestamp: customTs });
+
+                const saved = writeJSON.mock.calls[0][1];
+                expect(saved.meta.updatedAt).toBe(customTs);
+                const entry = saved.tasks.find((t) => t.id === 1).statusHistory.pop();
+                expect(entry.changedAt).toBe(customTs);
         });
 
 	test('should update subtask status when using dot notation', async () => {
@@ -491,27 +506,30 @@ describe('setTaskStatus', () => {
 
 		// Assert
 		expect(updateSingleTaskStatus).toHaveBeenCalledTimes(3);
-		expect(updateSingleTaskStatus).toHaveBeenCalledWith(
-			tasksPath,
-			'1',
-			newStatus,
-			testTasksData,
-			false
-		);
-		expect(updateSingleTaskStatus).toHaveBeenCalledWith(
-			tasksPath,
-			'2',
-			newStatus,
-			testTasksData,
-			false
-		);
-		expect(updateSingleTaskStatus).toHaveBeenCalledWith(
-			tasksPath,
-			'3',
-			newStatus,
-			testTasksData,
-			false
-		);
+                expect(updateSingleTaskStatus).toHaveBeenCalledWith(
+                        tasksPath,
+                        '1',
+                        newStatus,
+                        testTasksData,
+                        false,
+                        undefined
+                );
+                expect(updateSingleTaskStatus).toHaveBeenCalledWith(
+                        tasksPath,
+                        '2',
+                        newStatus,
+                        testTasksData,
+                        false,
+                        undefined
+                );
+                expect(updateSingleTaskStatus).toHaveBeenCalledWith(
+                        tasksPath,
+                        '3',
+                        newStatus,
+                        testTasksData,
+                        false,
+                        undefined
+                );
 		expect(result).toBeDefined();
 	});
 });
